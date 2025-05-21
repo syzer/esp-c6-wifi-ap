@@ -8,6 +8,7 @@ name = "ble-wifi"
 path = "./src/bin/main.rs"
 
 [dependencies]
+defmt-rtt = "0.4"
 defmt = "0.3.10"
 embassy-net = { version = "0.6.0", features = [
   "dhcpv4",
