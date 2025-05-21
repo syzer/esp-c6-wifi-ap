@@ -16,45 +16,10 @@ use esp_hal::{
     timer::systimer::SystemTimer,
 };
 use esp_hal_smartled::{smartLedBuffer, SmartLedsAdapter};
+use smart_leds::hsv::{hsv2rgb, Hsv};
 
 #[panic_handler]
 fn panic(_: &core::panic::PanicInfo) -> ! { loop {} }
-
-// Define HSV struct
-struct Hsv {
-    hue: u8,
-    sat: u8,
-    val: u8,
-}
-
-// Helper function to convert HSV to RGB
-fn hsv2rgb(hsv: Hsv) -> RGB8 {
-    // Basic HSV to RGB conversion
-    let h = hsv.hue as f32 / 255.0;
-    let s = hsv.sat as f32 / 255.0;
-    let v = hsv.val as f32 / 255.0;
-
-    if s <= 0.0 {
-        return RGB8::new((v * 255.0) as u8, (v * 255.0) as u8, (v * 255.0) as u8);
-    }
-
-    let hh = (h * 6.0) % 6.0;
-    let i = hh as u8;
-    let ff = hh - i as f32;
-
-    let p = v * (1.0 - s);
-    let q = v * (1.0 - s * ff);
-    let t = v * (1.0 - s * (1.0 - ff));
-
-    match i {
-        0 => RGB8::new((v * 255.0) as u8, (t * 255.0) as u8, (p * 255.0) as u8),
-        1 => RGB8::new((q * 255.0) as u8, (v * 255.0) as u8, (p * 255.0) as u8),
-        2 => RGB8::new((p * 255.0) as u8, (v * 255.0) as u8, (t * 255.0) as u8),
-        3 => RGB8::new((p * 255.0) as u8, (q * 255.0) as u8, (v * 255.0) as u8),
-        4 => RGB8::new((t * 255.0) as u8, (p * 255.0) as u8, (v * 255.0) as u8),
-        _ => RGB8::new((v * 255.0) as u8, (p * 255.0) as u8, (q * 255.0) as u8),
-    }
-}
 
 #[esp_hal_embassy::main]
 async fn main(_spawner: Spawner) {
@@ -93,12 +58,14 @@ async fn main(_spawner: Spawner) {
 
             // Build HSV and convert to RGB8
             let hsv = Hsv { hue, sat: 255, val: 255 };
-            let rgb = hsv2rgb(hsv);
-            hue = hue.wrapping_add(10); // Increment by 10 for faster color changes
+            let rgb: RGB8 = hsv2rgb(Hsv { hue, sat: 255, val: 255 });
+            hue = hue.wrapping_add(10); // Increment hue for next color
 
             // Display the color on the LED (brightness at 10/255)
             info!("Changing LED color");
-            led.write(brightness(gamma([rgb].iter().cloned()), 255)).unwrap();
+            if let Err(e) = led.write(brightness(gamma([rgb].iter().cloned()), 10)) {
+                info!("LED write error");
+            }
             Timer::after(Duration::from_millis(50)).await // AKA debounce for poor;
         }
     }
