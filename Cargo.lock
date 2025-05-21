@@ -84,6 +84,7 @@ dependencies = [
  "esp-wifi",
  "fugit",
  "heapless",
+ "log",
  "rgb",
  "smart-leds",
  "smoltcp",
