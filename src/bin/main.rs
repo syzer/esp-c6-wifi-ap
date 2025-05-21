@@ -7,6 +7,7 @@ use embassy_executor::Spawner;
 use embassy_time::{Duration, Timer};
 use esp_println as _;
 use smart_leds::{RGB8, SmartLedsWrite, brightness, gamma};
+use heapless::String as HeapString;
 
 use esp_hal::{
     clock::CpuClock,
@@ -21,6 +22,14 @@ use smart_leds::hsv::{hsv2rgb, Hsv};
 #[panic_handler]
 fn panic(_: &core::panic::PanicInfo) -> ! { loop {} }
 
+
+const AP_SSID: &str = env!("AP_SSID");
+const AP_PASS: &str = env!("AP_PASS");
+
+const ST_SSID: &str = env!("ST_SSID");
+const ST_PASS: &str = env!("ST_PASS");
+
+
 #[esp_hal_embassy::main]
 async fn main(_spawner: Spawner) {
     let cfg = esp_hal::Config::default().with_cpu_clock(CpuClock::max());
@@ -34,23 +43,18 @@ async fn main(_spawner: Spawner) {
         per.GPIO9,
         InputConfig::default().with_pull(Pull::Up),
     );
-
     // Set up RMT @80 MHz for NeoPixel timing
     let rmt = Rmt::new(per.RMT, Rate::from_mhz(80)).unwrap();
-
     // On-board WS2812 on GPIO8, one LED
     let buffer = smartLedBuffer!(1); // Creates appropriate buffer for 1 LED
-
     // Create SmartLedsAdapter directly - let it handle pin configuration
     let mut led = SmartLedsAdapter::new(rmt.channel0, per.GPIO8, buffer);
-
-    info!("Hold BOOT to toggle LED color");
-
     // Initialize with LED off
     led.write(brightness([RGB8::new(0, 0, 0)].iter().cloned(), 0)).unwrap();
 
     // For rainbow effect
     let mut hue: u8 = 0;
+    info!("Hold BOOT to toggle LED color");
 
     loop {
         if button.is_low() {

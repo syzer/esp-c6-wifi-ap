@@ -3,6 +3,22 @@ fn main() {
     println!("cargo:rustc-link-arg=-Tdefmt.x");
     // make sure linkall.x is the last linker script (otherwise might cause problems with flip-link)
     println!("cargo:rustc-link-arg=-Tlinkall.x");
+
+    let _ = dotenvy::from_filename(".env");
+
+    println!("cargo:rerun-if-changed=.env");
+
+    for key in ["AP_SSID", "AP_PASS"] {
+        if let Ok(val) = std::env::var(key) {
+            println!("cargo:rustc-env={key}={val}");
+        }
+    }
+
+    for key in ["ST_SSID", "ST_PASS"] {
+        if let Ok(val) = std::env::var(key) {
+            println!("cargo:rustc-env={key}={val}");
+        }
+    }
 }
 
 fn linker_be_nice() {
